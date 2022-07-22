@@ -1,6 +1,6 @@
-from turtle import Screen, Turtle
-from math import sqrt
+import turtle
 import time
+from math import sqrt
 import random
 import os
 
@@ -24,17 +24,18 @@ if __name__ == '__main__':
     number_of_dots = int(input("How many points would you like: "))
     refresh_rate = int(input("Please enter a number greater than 1 for your screen refresh rate. The higher the "
                              "number, the quicker the triangle will generate: "))
-    screen = Screen()
+    beginning = time.time()
+    screen = turtle.Screen()
     screen.setup(width=1024, height=768)
-    t = Turtle()
+    t = turtle.Turtle()
     t.speed(0)
     t.hideturtle()
+    turtle.delay(0)
     screen.tracer(0)
-    i = 1
     half_height = ((sqrt((side_length ** 2) - (side_length / 2) ** 2)) / 2)
     top_point = (0, half_height)
-    left_point = (-half_height, -half_height)
-    right_point = (half_height, -half_height)
+    left_point = (-side_length/2, -half_height)
+    right_point = (side_length/2, -half_height)
     main_points = [top_point, left_point, right_point]
     for point in main_points:
         draw_point(point)
@@ -57,8 +58,10 @@ if __name__ == '__main__':
     midpoint = midpoint_calculator(first_point, second_point)
     draw_point(midpoint)
     previous_point = midpoint
+    i = 1
+    start = time.time()
     while i <= number_of_dots:
-        os.system('clear')
+        # os.system('clear')
         new_choice = random.randint(0, len(main_points) - 1)
         if new_choice == 0:
             new_point = top_point
@@ -69,10 +72,13 @@ if __name__ == '__main__':
         midpoint = midpoint_calculator(new_point, previous_point)
         draw_point(midpoint)
         previous_point = midpoint
-        print(i)
+#         print(i)
         if i % refresh_rate == 0:
             screen.update()
         i += 1
-    os.system('clear')
+    
+#     os.system('clear')
     print("Triangle Complete!")
+    print(f"Total time elapsed {(time.time() - beginning):.6f}")
+    print(f"Time per point {((time.time() - beginning)/number_of_dots):.6f}")
     screen.exitonclick()
