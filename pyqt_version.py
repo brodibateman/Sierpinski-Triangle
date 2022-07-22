@@ -22,91 +22,11 @@ def random_choice(previous=0):
         return point_choice
 
 
-def create_triangle(side_length):
-    half_height = (side_length / 2) * (sqrt(3)) / 2
-    top_point_x = 0
-    top_point_y = half_height
-    left_point_x = -side_length / 2
-    left_point_y = -half_height
-    right_point_x = side_length / 2
-    right_point_y = -half_height
-    main_points_x = [top_point_x, left_point_x, right_point_x]
-    main_points_y = [top_point_y, left_point_y, right_point_y]
-    return main_points_x, main_points_y
-
-
-def create_triangle_update(side_length):
-    half_height = (side_length / 2) * (sqrt(3)) / 2
-    top_point_x = 0
-    top_point_y = half_height
-    left_point_x = -side_length / 2
-    left_point_y = -half_height
-    right_point_x = side_length / 2
-    right_point_y = -half_height
-    program.all_points_x = np.array([top_point_x, left_point_x, right_point_x])
-    program.all_points_y = np.array([top_point_y, left_point_y, right_point_y])
-
-
-def build_array_update(length, dots):
-    begin = time.time()
-    create_triangle_update(length)
-    first_point = random_choice()
-    second_point = random_choice(first_point)
-    print(program.all_points_x, program.all_points_x)
-    print(program.all_points_y, program.all_points_y)
-    np.append(program.all_points_x, midpoint_calculator(program.all_points_x[first_point],
-                                                        program.all_points_x[second_point]))
-    np.append(program.all_points_y, midpoint_calculator(program.all_points_y[first_point],
-                                                        program.all_points_y[second_point]))
-    for _ in range(dots - 4):
-        new_choice = random_choice()
-        np.append(program.all_points_x, midpoint_calculator(program.all_points_x[new_choice], program.all_points_x[-1]))
-        np.append(program.all_points_y, midpoint_calculator(program.all_points_y[new_choice], program.all_points_y[-1]))
-    print(f"Array built in {(time.time() - begin):.6f} seconds.")
-
-
-def build_array(length, dots):
-    begin = time.time()
-    init_x, init_y = create_triangle(length)
-    all_points_x = init_x.copy()
-    all_points_y = init_y.copy()
-    first_point = random_choice()
-    second_point = random_choice(first_point)
-    midpoint_x = midpoint_calculator(init_x[first_point], init_x[second_point])
-    midpoint_y = midpoint_calculator(init_y[first_point], init_y[second_point])
-    all_points_x.append(midpoint_x)
-    all_points_y.append(midpoint_y)
-    previous_point_x = midpoint_x
-    previous_point_y = midpoint_y
-    for _ in range(dots - 4):
-        new_choice = random_choice()
-        midpoint_x = midpoint_calculator(init_x[new_choice], previous_point_x)
-        midpoint_y = midpoint_calculator(init_y[new_choice], previous_point_y)
-        all_points_x.append(midpoint_x)
-        all_points_y.append(midpoint_y)
-        previous_point_x = midpoint_x
-        previous_point_y = midpoint_y
-    print(f"Array built in {(time.time() - begin):.6f} seconds.")
-    return np.array(all_points_x), np.array(all_points_y)
-
-
-def update():
-    program.plot_data.setData(program.all_points_x[:program.ptr1], program.all_points_y[:program.ptr1])
-    program.ptr1 += program.ptr_value
-    if int(((program.ptr1 / program.count) * 100)) % 2 == 0:
-        program.report_progress(int(((program.ptr1 / program.count) * 100)))
-    if program.ptr1 >= program.count:
-        # print("End!")
-        program.report_progress(100)
-        program.cleanup()
-        program.plot_data.setData(program.all_points_x, program.all_points_y)
-
-
 class Visualizer(QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(update)
+        self.timer.timeout.connect(self.update)
         self.draw = True
         self.ptr1 = 0
         self.plot_data = None
@@ -132,13 +52,27 @@ class Visualizer(QMainWindow):
         self.speed_label = QLabel("Enter Refresh Speed 0-10 (0 = Instantaneous)")
         self.speed_box = QLineEdit(self)
         self.speed_button = QPushButton('Set Speed', self)
+        self.first_point = int()
+        self.second_point = int()
+        self.new_choice = int()
+        self.half_height = float()
+        self.top_point_x = float()
+        self.top_point_y = float()
+        self.left_point_x = float()
+        self.left_point_y = float()
+        self.right_point_x = float()
+        self.right_point_y = float()
         self.number_of_points = 10000
+        self.all_points_x = []
+        self.all_points_y = []
         self.triangle_size = 500
-        self.all_points_x, self.all_points_y = build_array(self.triangle_size, self.number_of_points)
+        self.build_array(self.triangle_size, self.number_of_points)
+        self.x_array = np.asarray(self.all_points_x)
+        self.y_array = np.asarray(self.all_points_y)
         self.refresh_speed = 5
-        self.ptr_value = 60
+        self.ptr_value = 100
         self.timer_value = 0
-        self.count = len(self.all_points_x)
+        self.count = len(self.x_array)
         self.begin = time.time()
         self.timer_speeds = {1: 50,
                              2: 40,
@@ -158,11 +92,49 @@ class Visualizer(QMainWindow):
                            5: 100,
                            6: 120,
                            7: 140,
-                           8: 160,
-                           9: 180,
-                           10: 200
+                           8: 200,
+                           9: 300,
+                           10: 400
                            }
         self.setup_ui()
+
+    def update(self):
+        self.plot_data.setData(self.x_array[:self.ptr1], self.y_array[:self.ptr1])
+        self.ptr1 += self.ptr_value
+        if int(((self.ptr1 / self.count) * 100)) % 2 == 0:
+            self.report_progress(int(((self.ptr1 / self.count) * 100)))
+        if self.ptr1 >= self.count:
+            self.report_progress(100)
+            self.cleanup()
+            self.plot_data.setData(self.x_array, self.y_array)
+
+    def create_triangle(self, side_length):
+        self.half_height = (side_length / 2) * (sqrt(3)) / 2
+        self.top_point_x = 0
+        self.top_point_y = self.half_height
+        self.left_point_x = -side_length / 2
+        self.left_point_y = -self.half_height
+        self.right_point_x = side_length / 2
+        self.right_point_y = -self.half_height
+        self.all_points_x.extend([self.top_point_x, self.left_point_x, self.right_point_x])
+        self.all_points_y.extend([self.top_point_y, self.left_point_y, self.right_point_y])
+
+    def build_array(self, length, dots):
+        self.begin = time.time()
+        self.create_triangle(length)
+        self.first_point = random_choice()
+        self.second_point = random_choice(self.first_point)
+        self.all_points_x.append(
+            midpoint_calculator(self.all_points_x[self.first_point], self.all_points_x[self.second_point]))
+        self.all_points_y.append(
+            midpoint_calculator(self.all_points_y[self.first_point], self.all_points_y[self.second_point]))
+        for _ in range(dots - 4):
+            self.new_choice = random_choice()
+            self.all_points_x.append(midpoint_calculator(self.all_points_x[self.new_choice], self.all_points_x[-1]))
+            self.all_points_y.append(midpoint_calculator(self.all_points_y[self.new_choice], self.all_points_y[-1]))
+        self.x_array = np.asarray(self.all_points_x)
+        self.y_array = np.asarray(self.all_points_y)
+        print(f"Array built in {(time.time() - self.begin):.6f} seconds.")
 
     def setup_ui(self):
         self.setWindowTitle("Sierpinski Triangle")
@@ -237,7 +209,7 @@ class Visualizer(QMainWindow):
                 self.speed_button.setEnabled(True)
                 self.size_box.setEnabled(False)
                 self.speed_box.setEnabled(True)
-                build_array_update(self.triangle_size, self.number_of_points)
+                self.build_array(self.triangle_size, self.number_of_points)
             else:
                 QMessageBox.question(self, 'Message', "Value must be greater than zero.", QMessageBox.Ok,
                                      QMessageBox.Ok)
@@ -292,6 +264,8 @@ class Visualizer(QMainWindow):
         self.points_box.setText("")
         self.size_box.setText("")
         self.speed_box.setText("")
+        self.all_points_x = []
+        self.all_points_y = []
 
     def cleanup(self):
         self.stop_timer()
@@ -307,9 +281,10 @@ class Visualizer(QMainWindow):
         if self.plot_data is not None:
             self.plot.removeItem(self.plot_data)
             print("Clearing old data")
-        self.count = len(self.all_points_x)
-        self.plot_data = self.plot.plot(*[self.all_points_x, self.all_points_y], pen=None,
+        self.count = len(self.x_array)
+        self.plot_data = self.plot.plot(*[self.x_array, self.y_array], pen=None,
                                         symbolBrush=(0, 213, 255, 255), symbolSize=2)
+        self.plot.enableAutoRange()
         self.begin = time.time()
         if self.refresh_speed != 0:
             self.start_timer()
