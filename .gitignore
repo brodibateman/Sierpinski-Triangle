@@ -4,3 +4,6 @@ backup/backup.py
 venv/
 backup/
 .ipynb_checkpoints/
+sierpinski-triangle/
+__pycache__/
+.DS_Store
